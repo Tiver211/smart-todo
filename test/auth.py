@@ -11,6 +11,7 @@ def client():
             db.create_all()  # Создает таблицы
             yield client  # Переход к тестам
             db.session.remove()  # Закрывает сессию, но не удаляет таблицы
+            db.drop_all()
 
 
 
@@ -87,7 +88,7 @@ def test_login_invalid_credentials(client):
     assert response.json["error"] == "Invalid credentials"
 
 
-'''def test_logout_success(client):
+def test_logout_success(client):
     client.post('/auth/register', json={
         "login": "user_to_logout",
         "email": "logout@gmail.com",
@@ -140,4 +141,3 @@ def test_change_data_conflict(client):
     })
     assert response.status_code == 200
     assert response.json["error"] == "Логин уже занят"
-'''

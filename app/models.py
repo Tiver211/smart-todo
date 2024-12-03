@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
+
+from flask_login import UserMixin
+
 from .extensions import db
 
 
 # Users
-class User(db.Model):
+class User(db.Model, UserMixin):
     __tablename__ = 'users'
 
     user_id = db.Column(db.Integer, primary_key=True)
@@ -19,11 +22,11 @@ class User(db.Model):
     groups = db.relationship('Group', back_populates='user', cascade='all, delete-orphan')
     repeating_tasks = db.relationship('RepeatingTask', back_populates='user', cascade='all, delete-orphan')
 
-    def get_id(self):
-        return str(self.UserID)
-
     def __repr__(self):
         return '<User %r>' % self.login
+
+    def get_id(self):
+        return self.user_id
 
 
 # Shared Attributes

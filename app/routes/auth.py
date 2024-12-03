@@ -8,24 +8,22 @@ from flask_login import logout_user, login_required, current_user
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
-@auth_bp.route('/register', methods=['POST'])
+@auth_bp.route('/register', methods=['POST', 'GET'])
 def register():
     data = request.json
     return jsonify(register_user(data['login'], data['email'], data['password'], data.get('name')))
 
 
-@auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/login', methods=['POST', 'GET'])
 def login():
     data = request.json
     if "login" in data and "password" in data:
         res = login_user_service(data['password'], login=data['login'])
-        del res["token"]
-        return jsonify(res)
+        return jsonify(res), 200
 
     elif "email" in data and "password" in data:
         res = login_user_service(data['password'], email=data['email'])
-        del res["token"]
-        return jsonify(res)
+        return jsonify(res), 200
 
     else:
         return jsonify({'error': 'No valid credentials'})
@@ -35,7 +33,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('auth.login'))
 
 
 @auth_bp.route('/change_data', methods=['POST'])

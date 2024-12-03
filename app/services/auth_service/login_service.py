@@ -1,6 +1,6 @@
 from app.extensions import bcrypt, login_manager
 from app.models import User
-from flask_login import current_user
+from flask_login import current_user, login_user, confirm_login
 
 
 def login_user_service(password, login=None, email=None):
@@ -19,11 +19,11 @@ def login_user_service(password, login=None, email=None):
     if user:
         print()
         if bcrypt.check_password_hash(user.password, user.salt+password):
-            login_user(user)
+            login_user(user, remember=True)
             return {"message": "Login successful"}
     return {"error": "Invalid credentials"}
 
 
 @login_manager.user_loader
-def login_user(user):
-    return user
+def load_user(user_id):
+    return User.query.filter_by(user_id=user_id).first()

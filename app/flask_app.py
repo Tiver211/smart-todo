@@ -13,6 +13,9 @@ def create_app(name=None):
 
     # Загрузка конфигурации
     app.config.from_object('app.config.Config')
+    app.config['SESSION_COOKIE_SECURE'] = False  # Включите True, если используете HTTPS
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
     # Инициализация расширений
     db.init_app(app)
