@@ -14,7 +14,6 @@ def client():
             db.drop_all()
 
 
-
 def test_register_success(client):
     response = client.post('/auth/register', json={
         "login": "new_user",
@@ -118,7 +117,7 @@ def test_change_data_success(client):
         "name": "New Name"
     })
     assert response.status_code == 200
-    assert response.json["error/message"] == "Данные успешно обновлены"
+    assert response.json["message"] == "Данные успешно обновлены"
 
 
 def test_change_data_conflict(client):

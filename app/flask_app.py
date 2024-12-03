@@ -11,6 +11,7 @@ def create_app(name=None):
     else:
         app = Flask(__name__)
 
+
     # Загрузка конфигурации
     app.config.from_object('app.config.Config')
     app.config['SESSION_COOKIE_SECURE'] = False  # Включите True, если используете HTTPS
