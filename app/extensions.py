@@ -25,7 +25,13 @@ class CustomLoggerAdapter(logging.LoggerAdapter):
         if 'operation_id' not in kwargs.get('extra', {}):
             kwargs["extra"] = kwargs.get("extra", {})
             kwargs["extra"]["operation_id"] = 'not in operation'  # Генерация нового UUID
+
+        elif kwargs.get('extra', {})['operation_id'] is None:
+            kwargs["extra"] = kwargs.get("extra", {})
+            kwargs["extra"]["operation_id"] = 'not in operation'
+
         return msg, kwargs
+
 
 def get_logger(name='main_logger', level=logging.INFO):
     log_file = f"logs\\app_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"

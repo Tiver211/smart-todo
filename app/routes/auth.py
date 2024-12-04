@@ -44,7 +44,7 @@ def register():
 @auth_bp.route('/login', methods=['POST', 'GET'])
 def login():
     data = request.json
-    logger.info("Попытка входа: данные %s", data, extra={"operation_id": g.operation_id})
+    logger.info(f"Попытка входа: данные {data["login"]=} {data["email"]=}", extra={"operation_id": g.operation_id})
     try:
         if "login" in data and "password" in data:
             res = login_user_service(data['password'], login=data['login'], operation_id=g.operation_id)
