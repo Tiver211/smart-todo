@@ -62,7 +62,7 @@ class Task(db.Model):
     shared_id = db.Column(db.Integer, db.ForeignKey('shared_attributes.shared_id'), nullable=False)
     parent = db.Column(db.Integer, db.ForeignKey('tasks.task_id'))
     group_id = db.Column(db.Integer, db.ForeignKey('groups.group_id'))
-    repeated_from = db.Column(db.Integer, db.ForeignKey('repeating_tasks.repeat_id'))
+    reapeated_from = db.Column(db.Integer, db.ForeignKey('repeating_tasks.repeat_id'))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))
@@ -82,7 +82,7 @@ class Group(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     shared_id = db.Column(db.Integer, db.ForeignKey('shared_attributes.shared_id'), nullable=False)
     parent = db.Column(db.Integer, db.ForeignKey('groups.group_id'))
-    repeated_from = db.Column(db.Integer, db.ForeignKey('repeating_tasks.repeat_id'))
+    reapeated_from = db.Column(db.Integer, db.ForeignKey('repeating_tasks.repeat_id'))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                            onupdate=lambda: datetime.now(timezone.utc))
@@ -124,7 +124,7 @@ class RepeatingTask(db.Model):
     repeat_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     shared_id = db.Column(db.Integer, db.ForeignKey('shared_attributes.shared_id'), nullable=False)
-    repeat_pattern = db.Column(db.String(100), nullable=False)
+    reapeat_pattern = db.Column(db.String(100), nullable=False)
     parent = db.Column(db.Integer, db.ForeignKey('repeating_tasks.repeat_id'))
     group_id = db.Column(db.Integer, db.ForeignKey('groups.group_id'))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

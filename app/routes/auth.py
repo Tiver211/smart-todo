@@ -41,10 +41,13 @@ def register():
         return jsonify({"error": "Ошибка регистрации"}), 500
 
 
-@auth_bp.route('/login', methods=['POST', 'GET'])
+@auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.json
-    logger.info(f"Попытка входа: данные {data["login"]=} {data["email"]=}", extra={"operation_id": g.operation_id})
+    if 'login' in data:
+        logger.info(f"Попытка входа: данные {data["login"]=}", extra={"operation_id": g.operation_id})
+    elif 'email' in data:
+        logger.info(f"Попытка входа: данные {data['email']=}", extra={"operation_id": g.operation_id})
     try:
         if "login" in data and "password" in data:
             res = login_user_service(data['password'], login=data['login'], operation_id=g.operation_id)

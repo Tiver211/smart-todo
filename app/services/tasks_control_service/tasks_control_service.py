@@ -1,159 +1,127 @@
 from datetime import datetime
 
 from app.extensions import db, bcrypt
-from app.models import Task, RepeatingTask, SharedAttributes
+from app.models import *
 from app.extensions import logger
 
 
-def get_tasks_by_user_id(user_id, operation_id=None, ):
-    logger.info(f'Выполнение поиска задач пользователя {user_id=}', extra={'operation_id': operation_id})
+def get_all_data(user_id, operation_id=None):
+    logger.info(f'запрос данных получен {user_id}', extra={'operation_id': operation_id})
+    ans = []
+    tasks = Task.query.filter_by(user_id=user_id, group_id=None).all()
+    for task in tasks:
+        ans.append(get_task_data(task))
+    groups = Group.query.filter_by(user_id=user_id).all()
+    for group in groups:
+        ans.append(get_group_all(group.group_id))
 
-    res = Task.query.filter_by(user_id=user_id).all()
-
-    logger.info("Поиск выполнен", extra={'operation_id': operation_id})
-    return res
-
-
-def create_task(user_id,
-                title,
-                description,
-                priority,
-                able_to_split,
-                duration,
-                compiliable,
-                force_time_start=None,
-                force_time_end=None,
-                day_period=None,
-                parent=None,
-                group_id=None,
-                reapeted_from=None,
-                operation_id=None,):
-    logger.info("Добавление задачи", extra={'operation_id': operation_id})
-    try:
-        shared = SharedAttributes(
-            title=title,
-            description=description,
-            priority=priority,
-            able_to_split=able_to_split,
-            compiliable=compiliable,
-            duration=duration,
-            force_time_start=force_time_start,
-            force_time_end=force_time_end,
-            day_period=day_period
-        )
-        db.session.add(shared)
-
-        task = Task(
-            user_id=user_id,
-            shared_id=shared.shared_id,
-            parent_id=parent.id,
-            group_id=group_id,
-            reapeted_from=reapeted_from,
-        )
-
-        db.session.add(task)
-        logger.info('Задача создана', extra={'operation_id': operation_id})
-
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f'ошибка {e} при создании задачи', extra={'operation_id': operation_id})
-        return {'error': str(e)}
+    return ans
 
 
-def delete_task(task_id, operation_id=None):
-    try:
-        logger.info(f'Удаление задачи {task_id}', extra={'operation_id': operation_id})
-        task = Task.query.filter_by(id=task_id).first()
-        db.session.delete(task)
-        db.session.commit()
-        logger.info('Задача удалена', extra={'operation_id': operation_id})
+def get_group_all(group_id, operation_id=None):
+    group = Group.query.filter_by(group_id=group_id).first()
+    shared_info = SharedAttributes.query.filter_by(shared_id=group.shared_id).first()
+    if not shared_info:
+        return None  # Если нет связанной информации, возвращать `None`
 
-    except Exception as e:
-        db.session.rollback()
-        logger.error('ошибка при удалении задачи', extra={'operation_id': operation_id})
-        return {'error': str(e)}
+    group_data = {
+        "group_id": group.group_id,
+        "user_id": group.user_id,
+        "shared_info": {
+            "shared_id": shared_info.shared_id,
+            "title": shared_info.title,
+            "description": shared_info.description,
+            "priority": shared_info.priority,
+            "able_to_split": shared_info.able_to_split,
+            "compilable": shared_info.compilable,
+            "duration": shared_info.duration.total_seconds() / 60,
+            "force_time_start": shared_info.force_time_start,
+            "force_end_time": shared_info.force_end_time,
+            "day_period": shared_info.day_period,
+            "status": shared_info.status,
+        },
+        "parent_id": group.parent,
+        "repeated_from": group.reapeated_from,
+        "created_at": group.created_at,
+        "updated_at": group.updated_at,
+        "tasks": [],  # Список задач в группе
+        "subgroups": []  # Список вложенных групп
+    }
+
+    # Добавляем задачи группы
+    tasks = Task.query.filter_by(group_id=group.group_id).all()
+    for task in tasks:
+        group_data["tasks"].append(get_task_data(task))
+
+    # Добавляем вложенные группы
+    subgroups = Group.query.filter_by(parent=group.group_id).all()
+    for subgroup in subgroups:
+        group_data["subgroups"].append(get_group_all(subgroup))
+
+    return group_data
 
 
-def update_task_and_shared_attributes(
-        task_id,
-        user_id=None,
-        group_id=None,
-        repeated_from=None,
-        title=None,
-        description=None,
-        priority=None,
-        able_to_split=None,
-        compilable=None,
-        duration=None,
-        force_time_start=None,
-        force_end_time=None,
-        day_period=None,
-        status=None,
-        operation_id=None,
-):
-    """
-    Обновляет данные задачи (Task) и связанные с ней общие атрибуты (SharedAttributes).
+def get_task_data(task):
+    shared_info = SharedAttributes.query.filter_by(shared_id=task.shared_id).first()
+    sub_tasks = Task.query.filter_by(parent=task.task_id).all()
+    sub_tasks_data = []
+    for sub_task in sub_tasks:
+        sub_tasks_data.append(get_task_data(sub_task))
+    task_data = {"task_id": task.task_id,
+                 "user_id": task.user_id,
+                 "shared_info": {"shared_id": shared_info.shared_id,
+                                 "title": shared_info.title,
+                                 "description": shared_info.description,
+                                 "priority": shared_info.priority,
+                                 "able_to_split": shared_info.able_to_split,
+                                 "compilable": shared_info.compilable,
+                                 "duration": shared_info.duration.total_seconds() / 60,
+                                 "force_time_start": shared_info.force_time_start,
+                                 "force_time_end": shared_info.force_end_time,
+                                 "day_period": shared_info.day_period,
+                                 "status": shared_info.status,
+                                 },
+                 "parent_id": task.parent,
+                 "reapeated_from": task.reapeated_from,
+                 "created_at": task.created_at,
+                 "updated_at": task.updated_at,
+                 "sub_tasks": sub_tasks_data,
+                 }
+    return task_data
 
-    :param task_id: ID задачи, которую необходимо обновить.
-    :param user_id: Новый user_id для задачи (опционально).
-    :param group_id: Новый group_id для задачи (опционально).
-    :param repeated_from: Новый repeated_from для задачи (опционально).
-    :param title: Новое название в SharedAttributes (опционально).
-    :param description: Новое описание в SharedAttributes (опционально).
-    :param priority: Новый приоритет в SharedAttributes (опционально).
-    :param able_to_split: Новое значение флага "можно разделить" (опционально).
-    :param compilable: Новое значение флага "можно компилировать" (опционально).
-    :param duration: Новая продолжительность в SharedAttributes (опционально).
-    :param force_time_start: Новое принудительное время начала (опционально).
-    :param force_end_time: Новое принудительное время окончания (опционально).
-    :param day_period: Новый период дня (опционально).
-    :param status: Новый статус (опционально).
-    """
-    logger.info(f'обновления данных задания {user_id}', extra={'operation_id': operation_id})
-    # Найти задачу по ID
-    task = Task.query.filter_by(task_id=task_id).first()
-    if not task:
-        logger.error('Такого задания не существует', extra={'operation_id': operation_id})
-        return {"error": f"Task with ID {task_id} not found."}
 
-    if task.user_id != user_id:
-        return {"error": f"User id {user_id} not correct."}
+def generate_from_reapeted_task(reapeted_task):
+    shared_info = SharedAttributes.query.filter_by(shared_id=reapeted_task.shared_id).first()
+    sub_tasks = RepeatingTask.query.filter_by(parent=reapeted_task.task_id).all()
+    sub_tasks_data = []
+    for sub_task in sub_tasks:
+        sub_tasks_data.append(get_task_data(sub_task))
 
-    # Обновить данные задачи (Task)
-    if user_id is not None:
-        task.user_id = user_id
-    if group_id is not None:
-        task.group_id = group_id
-    if repeated_from is not None:
-        task.repeated_from = repeated_from
-    task.updated_at = datetime.now()
+    sheared_task_data = {"shared_id": shared_info.shared_id,
+                         "title": shared_info.title,
+                         "description": shared_info.description,
+                         "priority": shared_info.priority,
+                         "able_to_split": shared_info.able_to_split,
+                         "compilable": shared_info.compilable,
+                         "duration": shared_info.duration,
+                         "force_time_start": shared_info.force_time_start,
+                         "force_end_time": shared_info.force_end_time,
+                         "day_period": shared_info.day_period,
+                         "status": shared_info.status,
+                         }
+    task_data = {"user_id": reapeted_task.user_id,
+                 "parent_id": reapeted_task.parent,
+                 "reapeted_from": reapeted_task.repeat_id,
+                 "created_at": reapeted_task.created_at,
+                 "updated_at": reapeted_task.updated_at,
+                 "sub_tasks": sub_tasks_data,
+                 }
 
-    # Обновить данные общих атрибутов (SharedAttributes)
-    shared_attributes = task.shared_attributes
-    if not shared_attributes:
-        raise ValueError(f"SharedAttributes for task ID {task_id} not found.")
-
-    if title is not None:
-        shared_attributes.title = title
-    if description is not None:
-        shared_attributes.description = description
-    if priority is not None:
-        shared_attributes.priority = priority
-    if able_to_split is not None:
-        shared_attributes.able_to_split = able_to_split
-    if compilable is not None:
-        shared_attributes.compilable = compilable
-    if duration is not None:
-        shared_attributes.duration = duration
-    if force_time_start is not None:
-        shared_attributes.force_time_start = force_time_start
-    if force_end_time is not None:
-        shared_attributes.force_end_time = force_end_time
-    if day_period is not None:
-        shared_attributes.day_period = day_period
-    if status is not None:
-        shared_attributes.status = status
-    shared_attributes.updated_at = datetime.now()
-
-    # Сохранение изменений
+    shared = SharedAttributes(**sheared_task_data)
+    db.session.add(shared)
     db.session.commit()
+    task = Task(**task_data, shared_attributes=shared.shared_id)
+    db.session.add(task)
+    db.session.commit()
+
+    return get_task_data(task)
